@@ -1,0 +1,132 @@
+{
+    "saldo": 8348.91,
+    "giornata": 35,
+    "xp": 12,
+    "livello": 19,
+    "storico": [],
+    "classifiche": {
+        "SERIE A": {
+            "Inter": 59,
+            "Milan": 54,
+            "Juventus": 62,
+            "Napoli": 56,
+            "Roma": 53,
+            "Lazio": 61,
+            "Atalanta": 58,
+            "Fiorentina": 58,
+            "Bologna": 44,
+            "Torino": 38,
+            "Udinese": 50,
+            "Verona": 56
+        },
+        "PREMIER LEAGUE": {
+            "Man City": 0,
+            "Arsenal": 0,
+            "Liverpool": 3,
+            "Aston Villa": 3,
+            "Tottenham": 0,
+            "Chelsea": 0,
+            "Newcastle": 1,
+            "Man Utd": 1,
+            "West Ham": 3,
+            "Brighton": 3,
+            "Wolves": 0,
+            "Everton": 3
+        },
+        "LALIGA": {
+            "Real Madrid": 0,
+            "Barcellona": 0,
+            "Girona": 0,
+            "Atl. Madrid": 0,
+            "Ath. Bilbao": 0,
+            "Real Sociedad": 0,
+            "Betis": 0,
+            "Valencia": 0,
+            "Villarreal": 0,
+            "Getafe": 0,
+            "Osasuna": 0,
+            "Siviglia": 0
+        }
+    },
+    "storico_saldo": [
+        0.0,
+        100.0,
+        0.0,
+        100.0,
+        0.0,
+        100.0,
+        0.0,
+        100.0,
+        0.0,
+        100.0,
+        0.0,
+        100.0,
+        0.0,
+        100.0,
+        0.0,
+        100.0,
+        0.0,
+        100.0,
+        2791.33,
+        2491.33,
+        5441.33,
+        4941.33,
+        5989.49,
+        5689.49,
+        5379.49,
+        5364.49,
+        5349.49,
+        4349.49,
+        3849.49,
+        3986.71,
+        3976.71,
+        3876.71,
+        3866.71,
+        4746.71,
+        4756.31,
+        4778.81,
+        4768.81,
+        4758.81,
+        4718.81,
+        4708.81,
+        4208.81,
+        4188.81,
+        9348.91,
+        8348.91
+    ],
+    "albo_oro": [],
+    "obiettivi": {
+        "cecchino_progress": 0,
+        "cecchino": false,
+        "high_roller": true,
+        "rimonta": false
+    },
+    "schedina_giorno_attiva": false,
+    "storico_giocate": [
+        {
+            "vincita": 0.0,
+            "puntata": 500.0,
+            "quota_media": 9.56,
+            "tipo": "MULTIPLA"
+        },
+        {
+            "vincita": 0.0,
+            "puntata": 20.0,
+            "quota_media": 32.74,
+            "tipo": "MULTIPLA"
+        },
+        {
+            "vincita": 6160.1,
+            "puntata": 1000.0,
+            "quota_media": 6.16,
+            "tipo": "MULTIPLA"
+        },
+        {
+            "vincita": 0.0,
+            "puntata": 1000.0,
+            "quota_media": 1.78,
+            "tipo": "SINGOLA"
+        }
+    ],
+    "missioni_completate": []
+}
