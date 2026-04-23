@@ -749,7 +749,6 @@ function apriClassifica() {
     mostraPagina('page-classifica');
 }
 
-
 async function scommetti() {
     if (schedina.length === 0) return;
     
@@ -759,13 +758,12 @@ async function scommetti() {
     if(isNaN(importo) || importo <= 0) return alert("Inserisci un importo valido!");
     if(importo > saldoAttuale) return alert("Saldo insufficiente! Hai €" + saldoAttuale.toFixed(2));
 
-    // Scalo il saldo e aggiorno le statistiche
+    // Sottrazione saldo e stats
     saldoAttuale -= importo;
     financeHistory.uscite += importo;
     stats.play++;
     if(!stats.camp_list.includes(campAttuale)) stats.camp_list.push(campAttuale);
 
-    // Salvo subito il saldo scalato
     salvaProgressi();
 
     mostraPagina('page-simulazione');
@@ -777,11 +775,10 @@ async function scommetti() {
     const data = campionatiData[campAttuale];
     const matchesGiornata = data.calendario[data.giornataCorrente - 1];
 
-    // --- CORREZIONE 1: Generazione Risultati Fissi ---
+    // Inizializzazione match
     matchesGiornata.forEach(m => { 
         m.currentGolC = 0; 
         m.currentGolF = 0; 
-        // Genero il risultato finale una volta sola qui
         m.golC = Math.floor(Math.random() * 5); 
         m.golF = Math.floor(Math.random() * 4);
         m.lastGoalMin = -10; 
@@ -789,9 +786,9 @@ async function scommetti() {
 
     const container = document.getElementById('sim-container');
     
-    // Ciclo simulazione minuti
+    // SIMULAZIONE LIVE
     for (let min = 1; min <= 90; min++) {
-        await new Promise(r => setTimeout(r, 150)); 
+        await new Promise(r => setTimeout(r, 100)); // Velocizzato leggermente a 100ms
         
         let html = `<div style="text-align:center; padding:20px; background:#000; border-bottom:2px solid var(--accent); position:sticky; top:0; z-index:10;">
                         <span style="color:#888; font-size:0.7rem; text-transform:uppercase; letter-spacing:2px;">Tempo di Gioco</span><br>
@@ -802,12 +799,12 @@ async function scommetti() {
             let golFattoInQuestoMinuto = false; 
 
             if(min % 2 === 0) { 
-                if(!golFattoInQuestoMinuto && p.currentGolC < p.golC && Math.random() > 0.96) {
+                if(!golFattoInQuestoMinuto && p.currentGolC < p.golC && Math.random() > 0.95) {
                     p.currentGolC++;
                     p.lastGoalMin = min;
                     golFattoInQuestoMinuto = true;
                 }
-                if(!golFattoInQuestoMinuto && p.currentGolF < p.golF && Math.random() > 0.96) {
+                if(!golFattoInQuestoMinuto && p.currentGolF < p.golF && Math.random() > 0.95) {
                     p.currentGolF++;
                     p.lastGoalMin = min;
                     golFattoInQuestoMinuto = true;
@@ -832,7 +829,7 @@ async function scommetti() {
         document.getElementById('sim-status').innerText = "LIVE - Risultati in tempo reale";
     }
 
-    // --- CORREZIONE 2: Logica Risultati Legata ai Gol Generati ---
+    // --- LOGICA RISULTATI: SINCRONIZZATA AL 100% CON LO SCHERMO ---
     let vincente = true;
     let quotaTotale = schedina.reduce((acc, curr) => acc * curr.quota, 1);
     let eventiStorico = [];
@@ -841,28 +838,28 @@ async function scommetti() {
         const match = matchesGiornata.find(m => (m.casa + "-" + m.fuori) === s.evento);
         let ok = false;
         
-        // Uso ESATTAMENTE m.golC e m.golF generati all'inizio
-        let resCasa = match.golC;
-        let resFuori = match.golF;
-        let totG = resCasa + resFuori;
+        // IMPORTANTE: Leggiamo currentGol (quello che l'utente ha visto)
+        let finaleCasa = match.currentGolC; 
+        let finaleFuori = match.currentGolF;
+        let totG = finaleCasa + finaleFuori;
         
-        if(s.scelta === '1') { if(resCasa > resFuori) ok = true; }
-        else if(s.scelta === 'X') { if(resCasa === resFuori) ok = true; }
-        else if(s.scelta === '2') { if(resFuori > resCasa) ok = true; }
-        else if(s.scelta === 'GG') { if(resCasa > 0 && resFuori > 0) ok = true; }
-        else if(s.scelta === 'NG') { if(resCasa === 0 || resFuori === 0) ok = true; }
+        if(s.scelta === '1') { if(finaleCasa > finaleFuori) ok = true; }
+        else if(s.scelta === 'X') { if(finaleCasa === finaleFuori) ok = true; }
+        else if(s.scelta === '2') { if(finaleFuori > finaleCasa) ok = true; }
+        else if(s.scelta === 'GG') { if(finaleCasa > 0 && finaleFuori > 0) ok = true; }
+        else if(s.scelta === 'NG') { if(finaleCasa === 0 || finaleFuori === 0) ok = true; }
         else if(s.scelta.startsWith('U')) { if(totG < parseFloat(s.scelta.split(' ')[1])) ok = true; }
         else if(s.scelta.startsWith('O')) { if(totG > parseFloat(s.scelta.split(' ')[1])) ok = true; }
-        else if(s.scelta.includes('-')) { if((resCasa + "-" + resFuori) === s.scelta) ok = true; }
+        else if(s.scelta.includes('-')) { if((finaleCasa + "-" + finaleFuori) === s.scelta) ok = true; }
         
         if(!ok) vincente = false;
-        
-        // CORREZIONE 3: Salvo nello storico il risultato visualizzato
+
+        // Scriviamo nello storico il risultato visualizzato
         eventiStorico.push({ 
             match: s.evento, 
             scelta: s.scelta, 
             quota: s.quota, 
-            risultato: `${resCasa}-${resFuori}` 
+            risultato: `${finaleCasa}-${finaleFuori}` 
         });
     });
 
@@ -889,12 +886,12 @@ async function scommetti() {
         vinta: vincente
     });
 
-    // Aggiornamento classifica (Usa i risultati corretti)
+    // Aggiornamento classifica usando i risultati visualizzati
     matchesGiornata.forEach(m => {
         let cl = data.classifica;
         cl[m.casa].g++; cl[m.fuori].g++;
-        if(m.golC > m.golF) { cl[m.casa].pt += 3; cl[m.casa].v++; cl[m.fuori].p++; }
-        else if(m.golC < m.golF) { cl[m.fuori].pt += 3; cl[m.fuori].v++; cl[m.casa].p++; }
+        if(m.currentGolC > m.currentGolF) { cl[m.casa].pt += 3; cl[m.casa].v++; cl[m.fuori].p++; }
+        else if(m.currentGolC < m.currentGolF) { cl[m.fuori].pt += 3; cl[m.fuori].v++; cl[m.casa].p++; }
         else { cl[m.casa].pt += 1; cl[m.fuori].pt += 1; cl[m.casa].n++; cl[m.fuori].n++; }
     });
 
@@ -903,7 +900,6 @@ async function scommetti() {
     salvaProgressi();
     document.getElementById('btn-finish-sim').style.display = 'block';
 }
-
 function aggiornaUI_Saldo() {
     saldoAttuale = Number(saldoAttuale);
     document.getElementById('saldo-ui').innerText = saldoAttuale.toFixed(2);
