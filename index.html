@@ -522,18 +522,23 @@ const PREMI_LEVELS = [
 ];
 
 // --- STATO GIOCO ---
-let saldoAttuale = 100.00;
-let xpAttuale = 0;
-let livelloAttuale = 1;
+// --- CARICAMENTO DATI DAL BROWSER ---
+const s = JSON.parse(localStorage.getItem('betProSave')) || {};
+
+let saldoAttuale = s.saldoAttuale !== undefined ? s.saldoAttuale : 100.00;
+let xpAttuale = s.xpAttuale || 0;
+let livelloAttuale = s.livelloAttuale || 1;
+let stats = s.stats || { play:0, win:0, cs:0, total_win:0, market_uo:0, streak:0, curr_streak:0, camp_list:[] };
+let missioneStato = s.missioneStato || {};
+let financeHistory = s.financeHistory || { entrate: 0, uscite: 0 };
+let storicoGiocate = s.storicoGiocate || [];
+
+// Variabili che NON servono nel salvataggio (ripartono sempre vuote)
 let schedina = [];
 let matchAttuale = null;
 let campAttuale = "SERIE A";
 let campionatiData = {};
-let stats = { play:0, win:0, cs:0, total_win:0, market_uo:0, streak:0, curr_streak:0, camp_list:[] };
-let missioneStato = {};
-let financeHistory = { entrate: 0, uscite: 0 };
 let financeChart = null;
-let storicoGiocate = [];
 
 // --- FUNZIONI CORE ---
 
@@ -657,6 +662,7 @@ function mostraGrafico() {
         }
     });
 }
+
 function checkMission(id) {
     if(missioneStato[id]) return;
     const m = MISSIONI_LISTA.find(x => x.id === id);
@@ -753,10 +759,14 @@ async function scommetti() {
     if(isNaN(importo) || importo <= 0) return alert("Inserisci un importo valido!");
     if(importo > saldoAttuale) return alert("Saldo insufficiente! Hai €" + saldoAttuale.toFixed(2));
 
+    // Scalo il saldo e aggiorno le statistiche di uscita
     saldoAttuale -= importo;
     financeHistory.uscite += importo;
     stats.play++;
     if(!stats.camp_list.includes(campAttuale)) stats.camp_list.push(campAttuale);
+
+    // --- PRIMO SALVATAGGIO: Salvo il saldo appena scalato ---
+    salvaProgressi();
 
     mostraPagina('page-simulazione');
     document.getElementById('saldo-ui').innerText = saldoAttuale.toFixed(2);
@@ -819,7 +829,7 @@ async function scommetti() {
         document.getElementById('sim-status').innerText = "LIVE - Risultati in tempo reale";
     }
 
-    // --- LOGICA RISULTATI CORRETTA ---
+    // --- LOGICA RISULTATI ---
     let vincente = true;
     let quotaTotale = schedina.reduce((acc, curr) => acc * curr.quota, 1);
     let eventiStorico = [];
@@ -829,7 +839,6 @@ async function scommetti() {
         let ok = false;
         let totG = match.golC + match.golF;
         
-        // Switch corretto per ogni mercato
         if(s.scelta === '1') { if(match.golC > match.golF) ok = true; }
         else if(s.scelta === 'X') { if(match.golC === match.golF) ok = true; }
         else if(s.scelta === '2') { if(match.golF > match.golC) ok = true; }
@@ -866,7 +875,7 @@ async function scommetti() {
         vinta: vincente
     });
 
-    // Aggiornamento classifica reale
+    // Aggiornamento classifica
     matchesGiornata.forEach(m => {
         let cl = data.classifica;
         cl[m.casa].g++; cl[m.fuori].g++;
@@ -876,8 +885,13 @@ async function scommetti() {
     });
 
     document.getElementById('saldo-ui').innerText = saldoAttuale.toFixed(2);
+    
+    // Aggiorno XP (che gestisce internamente il level up)
     updateXpUi(); 
-    salvaInLocale();
+    
+    // --- SECONDO SALVATAGGIO: Salvo tutto dopo l'esito della partita ---
+    salvaProgressi();
+
     document.getElementById('btn-finish-sim').style.display = 'block';
 }
 
@@ -909,10 +923,13 @@ function updateXpUi() {
 
 function switchMarket(type) {
     document.querySelectorAll('.market-btn').forEach(b => b.classList.remove('active-market'));
-    document.getElementById('btn-' + type).classList.add('active-market');
+    const btn = document.getElementById('btn-' + type);
+    if(btn) btn.classList.add('active-market');
+
     const p = matchAttuale;
     const giaScelto = schedina.find(s => s.evento === (p.casa + "-" + p.fuori));
     let html = "";
+
     if (type === '1x2') {
         html = `<div class="grid3">
             <button class="q-btn ${giaScelto?.scelta === '1' ? 'selected' : ''}" onclick="seleziona(${p.esiti['1']},'1',this)"><b>CASA</b>1<br>${p.esiti['1']}</button>
@@ -925,28 +942,47 @@ function switchMarket(type) {
             <button class="q-btn ${giaScelto?.scelta === 'NG' ? 'selected' : ''}" onclick="seleziona(${p.esiti['NG']},'NG',this)"><b>NO GOAL</b>NG<br>${p.esiti['NG']}</button>
         </div>`;
     } else if (type === 'uo') {
-        [1.5, 2.5, 3.5, 4.5].forEach(s => {
-            html += `<div class="uo-row"><button class="q-btn" onclick="seleziona(1.85,'U ${s}',this)"><b>UNDER</b>1.85</button><div class="uo-label">${s}</div><button class="q-btn" onclick="seleziona(1.85,'O ${s}',this)"><b>OVER</b>1.85</button></div>`;
+        // UNDER/OVER DINAMICI: Tutte le soglie da 0.5 a 4.5
+        [0.5, 1.5, 2.5, 3.5, 4.5].forEach(s => {
+            const qOver = (1.10 + (s * 0.7) + (Math.random() * 0.3)).toFixed(2);
+            const qUnder = (7.0 - (s * 1.2) + (Math.random() * 0.4)).toFixed(2);
+            
+            html += `<div class="uo-row">
+                <button class="q-btn ${giaScelto?.scelta === 'U '+s ? 'selected' : ''}" onclick="seleziona(${qUnder},'U ${s}',this)"><b>UNDER</b>${qUnder}</button>
+                <div class="uo-label">${s}</div>
+                <button class="q-btn ${giaScelto?.scelta === 'O '+s ? 'selected' : ''}" onclick="seleziona(${qOver},'O ${s}',this)"><b>OVER</b>${qOver}</button>
+            </div>`;
         });
     } else if (type === 'cs') {
+        // RISULTATI ESATTI: Organizzati in colonne e somma gol <= 6
         let casaResHTML = "", pareggiResHTML = "", fuoriResHTML = "";
+        
         for(let gC=0; gC<=6; gC++){
             for(let gF=0; gF<=6; gF++){
+                // VINCOLO: Somma gol minore o uguale a 6
                 if(gC + gF > 6) continue;
+                
                 let res = `${gC}-${gF}`;
-                let q = 12.00;
-                let btn = `<button class="q-btn ${giaScelto?.scelta === res ? 'selected' : ''}" onclick="seleziona(${q.toFixed(2)},'${res}',this)"><b>${res}</b>${q.toFixed(2)}</button>`;
+                let diff = Math.abs(gC - gF);
+                let tot = gC + gF;
+                
+                // Calcolo quota dinamica basata sulla rarità del punteggio
+                let q = (7.00 + (diff * 4) + (tot * 3) + (Math.random() * 5)).toFixed(2);
+                let btn = `<button class="q-btn ${giaScelto?.scelta === res ? 'selected' : ''}" onclick="seleziona(${q},'${res}',this)"><b>${res}</b>${q}</button>`;
+                
                 if(gC > gF) casaResHTML += btn;
                 else if(gC < gF) fuoriResHTML += btn;
                 else pareggiResHTML += btn;
             }
         }
+        
         html = `<div class="cs-grid-container">
-            <div class="cs-column"><div class="cs-title">CASA</div>${casaResHTML}</div>
+            <div class="cs-column"><div class="cs-title">${p.casa}</div>${casaResHTML}</div>
             <div class="cs-column"><div class="cs-title">PAREGGIO</div>${pareggiResHTML}</div>
-            <div class="cs-column"><div class="cs-title">FUORI</div>${fuoriResHTML}</div>
+            <div class="cs-column"><div class="cs-title">${p.fuori}</div>${fuoriResHTML}</div>
         </div>`;
     }
+    
     document.getElementById("market-content").innerHTML = html;
 }
 
@@ -978,17 +1014,8 @@ function aggiornaCalcolo() {
     }
 }
 
-function salvaInLocale() { 
-    localStorage.setItem('bet_pro_full_save', JSON.stringify({ 
-        saldo: parseFloat(saldoAttuale), 
-        xp: xpAttuale, 
-        lvl: livelloAttuale, 
-        camps: campionatiData, 
-        stats: stats, 
-        missioni: missioneStato,
-        finance: financeHistory,
-        storico: storicoGiocate
-    })); 
+function salvaInLocale() {
+    salvaProgressi(); // Così se il codice cerca salvaInLocale, usa quella nuova
 }
 
 function caricaDaLocale() {
@@ -1030,6 +1057,20 @@ window.onload = () => {
     renderCampionati();
     setInterval(controllaBonus, 2000); 
 };
+
+function salvaProgressi() {
+    const datiDaSalvare = {
+        saldoAttuale: saldoAttuale,
+        xpAttuale: xpAttuale,
+        livelloAttuale: livelloAttuale,
+        stats: stats,
+        missioneStato: missioneStato,
+        financeHistory: financeHistory,
+        storicoGiocate: storicoGiocate
+    };
+    localStorage.setItem('betProSave', JSON.stringify(datiDaSalvare));
+    console.log("Gioco salvato!");
+}
 </script>
 </body>
 </html>
