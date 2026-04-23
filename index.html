@@ -759,13 +759,13 @@ async function scommetti() {
     if(isNaN(importo) || importo <= 0) return alert("Inserisci un importo valido!");
     if(importo > saldoAttuale) return alert("Saldo insufficiente! Hai €" + saldoAttuale.toFixed(2));
 
-    // Scalo il saldo e aggiorno le statistiche di uscita
+    // Scalo il saldo e aggiorno le statistiche
     saldoAttuale -= importo;
     financeHistory.uscite += importo;
     stats.play++;
     if(!stats.camp_list.includes(campAttuale)) stats.camp_list.push(campAttuale);
 
-    // --- PRIMO SALVATAGGIO: Salvo il saldo appena scalato ---
+    // Salvo subito il saldo scalato
     salvaProgressi();
 
     mostraPagina('page-simulazione');
@@ -777,9 +777,11 @@ async function scommetti() {
     const data = campionatiData[campAttuale];
     const matchesGiornata = data.calendario[data.giornataCorrente - 1];
 
+    // --- CORREZIONE 1: Generazione Risultati Fissi ---
     matchesGiornata.forEach(m => { 
         m.currentGolC = 0; 
         m.currentGolF = 0; 
+        // Genero il risultato finale una volta sola qui
         m.golC = Math.floor(Math.random() * 5); 
         m.golF = Math.floor(Math.random() * 4);
         m.lastGoalMin = -10; 
@@ -787,6 +789,7 @@ async function scommetti() {
 
     const container = document.getElementById('sim-container');
     
+    // Ciclo simulazione minuti
     for (let min = 1; min <= 90; min++) {
         await new Promise(r => setTimeout(r, 150)); 
         
@@ -829,7 +832,7 @@ async function scommetti() {
         document.getElementById('sim-status').innerText = "LIVE - Risultati in tempo reale";
     }
 
-    // --- LOGICA RISULTATI ---
+    // --- CORREZIONE 2: Logica Risultati Legata ai Gol Generati ---
     let vincente = true;
     let quotaTotale = schedina.reduce((acc, curr) => acc * curr.quota, 1);
     let eventiStorico = [];
@@ -837,19 +840,30 @@ async function scommetti() {
     schedina.forEach(s => {
         const match = matchesGiornata.find(m => (m.casa + "-" + m.fuori) === s.evento);
         let ok = false;
-        let totG = match.golC + match.golF;
         
-        if(s.scelta === '1') { if(match.golC > match.golF) ok = true; }
-        else if(s.scelta === 'X') { if(match.golC === match.golF) ok = true; }
-        else if(s.scelta === '2') { if(match.golF > match.golC) ok = true; }
-        else if(s.scelta === 'GG') { if(match.golC > 0 && match.golF > 0) ok = true; }
-        else if(s.scelta === 'NG') { if(match.golC === 0 || match.golF === 0) ok = true; }
+        // Uso ESATTAMENTE m.golC e m.golF generati all'inizio
+        let resCasa = match.golC;
+        let resFuori = match.golF;
+        let totG = resCasa + resFuori;
+        
+        if(s.scelta === '1') { if(resCasa > resFuori) ok = true; }
+        else if(s.scelta === 'X') { if(resCasa === resFuori) ok = true; }
+        else if(s.scelta === '2') { if(resFuori > resCasa) ok = true; }
+        else if(s.scelta === 'GG') { if(resCasa > 0 && resFuori > 0) ok = true; }
+        else if(s.scelta === 'NG') { if(resCasa === 0 || resFuori === 0) ok = true; }
         else if(s.scelta.startsWith('U')) { if(totG < parseFloat(s.scelta.split(' ')[1])) ok = true; }
         else if(s.scelta.startsWith('O')) { if(totG > parseFloat(s.scelta.split(' ')[1])) ok = true; }
-        else if(s.scelta.includes('-')) { if((match.golC + "-" + match.golF) === s.scelta) ok = true; }
+        else if(s.scelta.includes('-')) { if((resCasa + "-" + resFuori) === s.scelta) ok = true; }
         
         if(!ok) vincente = false;
-        eventiStorico.push({ match: s.evento, scelta: s.scelta, quota: s.quota, risultato: `${match.golC}-${match.golF}` });
+        
+        // CORREZIONE 3: Salvo nello storico il risultato visualizzato
+        eventiStorico.push({ 
+            match: s.evento, 
+            scelta: s.scelta, 
+            quota: s.quota, 
+            risultato: `${resCasa}-${resFuori}` 
+        });
     });
 
     let vincitaFinale = 0;
@@ -875,7 +889,7 @@ async function scommetti() {
         vinta: vincente
     });
 
-    // Aggiornamento classifica
+    // Aggiornamento classifica (Usa i risultati corretti)
     matchesGiornata.forEach(m => {
         let cl = data.classifica;
         cl[m.casa].g++; cl[m.fuori].g++;
@@ -885,13 +899,8 @@ async function scommetti() {
     });
 
     document.getElementById('saldo-ui').innerText = saldoAttuale.toFixed(2);
-    
-    // Aggiorno XP (che gestisce internamente il level up)
     updateXpUi(); 
-    
-    // --- SECONDO SALVATAGGIO: Salvo tutto dopo l'esito della partita ---
     salvaProgressi();
-
     document.getElementById('btn-finish-sim').style.display = 'block';
 }
 
