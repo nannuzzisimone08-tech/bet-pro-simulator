@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BET PRO SIMULATOR - LEAGUE MODE</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { 
+            --accent: #FFD700; 
+            --accent-glow: rgba(255, 215, 0, 0.3);
+            --bg: #0a0a0a; 
+            --card: #161616; 
+            --card-brighter: #222222;
+            --stop: #000; 
+            --xp-bar: linear-gradient(90deg, #4caf50, #8bc34a); 
+            --text-main: #ffffff;
+            --text-dim: #a0a0a0;
+            --border: #2a2a2a;
+        }
+
+        body { 
+            background: var(--bg); 
+            color: var(--text-main); 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            padding-bottom: 240px; 
+            overflow-x: hidden; 
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .header { 
+            background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%); 
+            padding: 20px 15px; 
+            border-bottom: 2px solid var(--accent); 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .nav-top { display: flex; gap: 8px; justify-content: space-between; }
+        
+        .nav-btn { 
+            background: #252525; 
+            color: var(--text-dim); 
+            border: 1px solid var(--border); 
+            padding: 10px 6px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 700; 
+            font-size: 0.65rem; 
+            flex: 1; 
+            text-transform: uppercase; 
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn.active { 
+            background: var(--accent); 
+            color: black; 
+            box-shadow: 0 0 15px var(--accent-glow);
+            border-color: var(--accent);
+        }
+
+        .card { 
+            background: var(--card); 
+            margin: 15px; 
+            padding: 20px; 
+            border-radius: 16px; 
+            border: 1px solid var(--border); 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+        }
+
+        .camp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 10px; }
+        
+        .camp-btn { 
+            background: linear-gradient(145deg, #1e1e1e, #141414); 
+            border: 1px solid var(--border); 
+            padding: 30px 10px; 
+            border-radius: 15px; 
+            text-align: center; 
+            cursor: pointer; 
+            font-weight: 800; 
+            transition: 0.2s;
+            color: var(--text-main);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            position: relative;
+        }
+
+        .camp-locked { opacity: 0.5; filter: grayscale(1); cursor: not-allowed; }
+        .lock-badge { position: absolute; top: 5px; right: 10px; font-size: 0.6rem; color: var(--accent); }
+
+        .partita-row { 
+            background: #1e1e1e; 
+            padding: 18px; 
+            margin: 10px 15px; 
+            border-radius: 12px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            cursor: pointer; 
+            border-left: 5px solid var(--accent); 
+        }
+
+        .q-btn { 
+            background: #222; 
+            border: 1px solid #333; 
+            color: var(--accent); 
+            padding: 12px 5px; 
+            border-radius: 10px; 
+            width: 100%; 
+            cursor: pointer; 
+            font-weight: 800; 
+            font-size: 0.9rem; 
+            transition: all 0.15s ease; 
+            margin-bottom: 5px;
+        }
+
+        .q-btn b { 
+            color: var(--text-dim); 
+            display: block; 
+            font-size: 0.55rem; 
+            margin-bottom: 4px; 
+            letter-spacing: 1px;
+        }
+
+        .selected { 
+            background: var(--accent) !important; 
+            color: black !important; 
+            border-color: var(--accent) !important; 
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+        .selected b { color: rgba(0,0,0,0.7) !important; }
+
+        .market-row { 
+            display: flex; 
+            gap: 8px; 
+            overflow-x: auto; 
+            padding-bottom: 10px; 
+            scrollbar-width: none; 
+        }
+
+        .market-btn { 
+            background: #252525; 
+            border: 1px solid var(--border); 
+            color: var(--text-dim); 
+            padding: 12px 18px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 0.75rem; 
+            white-space: nowrap; 
+        }
+
+        .active-market { 
+            background: var(--accent) !important; 
+            color: black !important; 
+        }
+
+        .uo-row { 
+            display: grid; 
+            grid-template-columns: 1fr 60px 1fr; 
+            gap: 10px; 
+            margin-bottom: 12px; 
+            align-items: center; 
+        }
+
+        .uo-label {
+            text-align: center;
+            font-weight: 900;
+            color: var(--accent);
+            font-size: 0.85rem;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 0;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+
+        .cs-grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        .cs-column {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .cs-title {
+            font-size: 0.6rem;
+            color: var(--accent);
+            text-align: center;
+            font-weight: 900;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+
+        .footer-bet { 
+            position: fixed; 
+            bottom: 20px; 
+            left: 50%;
+            transform: translateX(-50%);
+            width: 92%; 
+            max-width: 500px;
+            background: rgba(26, 26, 26, 0.98); 
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--accent); 
+            border-radius: 20px;
+            padding: 18px; 
+            box-sizing: border-box; 
+            z-index: 100; 
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.6);
+            display: none;
+        }
+
+        .vincita-box { 
+            background: rgba(0,0,0,0.4); 
+            padding: 12px; 
+            border-radius: 12px; 
+            margin-bottom: 12px; 
+        }
+
+        .xp-container { 
+            background: #000; 
+            border-radius: 20px; 
+            height: 12px; 
+            width: 100%; 
+            margin-top: 10px; 
+            overflow: hidden; 
+            border: 1px solid #333; 
+            cursor: pointer;
+            position: relative;
+        }
+
+        .xp-fill { 
+            background: var(--xp-bar); 
+            height: 100%; 
+            width: 0%; 
+            transition: width 0.8s ease; 
+        }
+        
+        .timer-live {
+            font-family: monospace;
+            font-size: 1.2rem;
+            color: #ff4444;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .score-box { 
+            background: #000; 
+            color: var(--accent); 
+            padding: 6px 14px; 
+            border-radius: 6px; 
+            font-family: monospace; 
+            font-size: 1.4rem; 
+            min-width: 60px; 
+            text-align: center; 
+            font-weight: 900; 
+            border: 1px solid var(--accent); 
+        }
+
+        table { width: 100%; color: white; border-collapse: collapse; margin-top: 10px; font-size: 0.75rem; }
+        th { border-bottom: 2px solid var(--accent); padding: 8px; text-align: left; color: var(--accent); }
+        td { padding: 8px; border-bottom: 1px solid #222; }
+        .pos { font-weight: 900; width: 20px; }
+
+        .hidden { display: none !important; }
+        .stop-btn { width: 100%; background: #000; color: var(--accent); border: 2px solid var(--accent); padding: 14px; border-radius: 10px; font-weight: 900; cursor: pointer; }
+        
+        .btn-classifica-inline {
+            background: #222;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 14px;
+            border-radius: 10px;
+            font-weight: bold;
+            flex: 1;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        .btn-premi {
+            background: var(--accent);
+            color: black;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.65rem;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .missione-card {
+            background: #222; padding: 15px; border-radius: 12px; margin-bottom: 10px;
+            border-left: 4px solid var(--accent); display: flex; justify-content: space-between; align-items: center;
+        }
+        .missione-info b { color: var(--accent); display: block; font-size: 0.8rem; }
+        .missione-info span { font-size: 0.65rem; color: #888; }
+        .missione-btn {
+            background: var(--accent); border: none; padding: 8px 12px; border-radius: 6px;
+            font-weight: bold; cursor: pointer; font-size: 0.7rem;
+        }
+        .missione-btn.completed { background: #4caf50; color: white; cursor: default; }
+
+        .overlay-pass {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000; display: none; padding: 40px 20px; box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .reward-step {
+            display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
+            padding: 15px; background: #1a1a1a; border-radius: 12px; border: 1px solid #333;
+        }
+        .reward-step.unlocked { border-color: var(--accent); background: #252210; }
+        .step-lv { background: var(--accent); color: black; font-weight: 900; padding: 10px; border-radius: 50%; min-width: 30px; text-align: center; }
+
+        /* Stile Storico */
+        .storico-item {
+            background: #1a1a1a; padding: 15px; border-radius: 12px; margin-bottom: 10px;
+            border: 1px solid #333; border-left: 4px solid #666;
+        }
+        .storico-item.win { border-left-color: #4caf50; }
+        .storico-item.lose { border-left-color: #f44336; }
+        .storico-header { display: flex; justify-content: space-between; font-size: 0.65rem; color: #888; margin-bottom: 8px; }
+        .storico-body { font-size: 0.8rem; }
+        .storico-footer { margin-top: 8px; display: flex; justify-content: space-between; font-weight: 900; }
+        .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        
+        /* Badge per le missioni */
+    .badge-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .mission-badge {
+        display: none; /* Nascosto di default */
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 12px;
+        height: 12px;
+        background-color: var(--accent);
+        border-radius: 50%;
+        border: 2px solid var(--bg);
+        box-shadow: 0 0 5px var(--accent);
+        z-index: 10;
+    }
+    /* Trova questa sezione nel tuo <style> e aggiornala */
+#overlay-grafico .card {
+    max-width: 400px; /* Riduce la larghezza massima */
+    margin: auto;
+}
+
+#financeChart {
+    max-height: 250px; /* Forza un'altezza massima per il grafico */
+    margin: 0 auto;
+}
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1 style="font-size:1.3rem; margin:0; color:var(--accent); letter-spacing: 1px;">BET PRO SIMULATOR</h1>
+    </div>
+    <div class="nav-top">
+        <button class="nav-btn active" id="nav-home" onclick="mostraPagina('page-home')">Home</button>
+        <button class="nav-btn" id="nav-missioni" onclick="mostraPagina('page-missioni')">Missioni</button>
+        <button class="nav-btn" id="nav-storico" onclick="mostraPagina('page-storico')">Storico</button>
+        <button class="nav-btn" id="nav-grafico" onclick="mostraGrafico()">Grafico</button>
+    </div>
+</div>
+
+<div id="page-home" class="pagina">
+    <div class="card" style="text-align:center;">
+        <div style="font-size:0.75rem; color:var(--accent); font-weight:900; letter-spacing: 2px;" id="titolo-rank">SCOMMETTITORE NOVIZIO</div>
+        <div style="font-size:0.7rem; color:#888; margin:5px 0;">SALDO DISPONIBILE</div>
+        <div style="font-size:2.8rem; color:var(--text-main); font-weight:900;">€ <span id="saldo-ui">100.00</span></div>
+        <div style="margin-top:20px; text-align:left;">
+            <div style="display:flex; justify-content:space-between; align-items: center;">
+                <span style="font-size:0.7rem; font-weight: bold;">LIVELLO <span id="lvl-ui">1</span></span>
+                <button class="btn-premi" onclick="togglePass()">PREMI 🎁</button>
+            </div>
+            <div class="xp-container" onclick="togglePass()"><div id="xp-fill-ui" class="xp-fill"></div></div>
+        </div>
+    </div>
+    <div class="camp-grid" id="camp-container-ui"></div>
+</div>
+
+<div id="overlay-pass" class="overlay-pass" onclick="togglePass()">
+    <h2 style="color:var(--accent); text-align:center;">ROAD TO LEGEND</h2>
+    <p style="text-align:center; color:#888; font-size:0.8rem; margin-bottom:30px;">Tutti i premi del tuo cammino</p>
+    <div id="reward-list"></div>
+    <button class="stop-btn" style="margin-top:20px;">CHIUDI</button>
+</div>
+
+<div id="overlay-grafico" class="overlay-pass" onclick="this.style.display='none'">
+    <div class="card" onclick="event.stopPropagation()">
+        <h3 style="color:var(--accent); text-align:center;">ANALISI FINANZIARIA</h3>
+        <canvas id="financeChart"></canvas>
+        <div style="display:flex; justify-content:space-around; margin-top:20px; font-size:0.8rem;">
+            <div style="text-align:center;"><span style="color:#f44336;">USCITE</span><br><b id="g-uscite">€ 0</b></div>
+            <div style="text-align:center;"><span style="color:#4caf50;">ENTRATE</span><br><b id="g-entrate">€ 0</b></div>
+        </div>
+        <button class="stop-btn" style="margin-top:20px;" onclick="document.getElementById('overlay-grafico').style.display='none'">CHIUDI</button>
+    </div>
+</div>
+
+<div id="page-missioni" class="pagina hidden">
+    <div class="card">
+        <h3 style="color:var(--accent); text-align:center;">MISSIONI TIPSTER</h3>
+        <div id="missioni-list"></div>
+    </div>
+</div>
+
+<div id="page-storico" class="pagina hidden">
+    <div class="card">
+        <h3 style="color:var(--accent); text-align:center;">STORICO GIOCATE</h3>
+        <div id="storico-lista"></div>
+    </div>
+</div>
+
+<div id="page-simulazione" class="pagina hidden">
+    <div class="card" style="text-align:center; border-color: var(--accent);">
+        <h2 id="sim-campionato-titolo" style="color:var(--accent); margin:0; font-size:1.1rem;">SIMULAZIONE LIVE</h2>
+        <p id="sim-status" style="font-size:0.85rem; color:var(--text-dim); margin-top:10px;">In attesa...</p>
+    </div>
+    <div id="sim-container" class="card" style="padding:0;"></div>
+    <div id="sim-result-msg" style="text-align:center; font-weight:900; font-size:1.2rem; margin:10px;"></div>
+    <button id="btn-finish-sim" style="width:90%; display:none; margin:20px auto; background:var(--accent); padding:15px; border-radius:12px; font-weight:900; border:none;" onclick="tornaAllePartite()">CHIUDI E AGGIORNA CAMPIONATO</button>
+</div>
+
+<div id="page-partite" class="pagina hidden">
+    <div style="padding:15px; display:flex; gap:10px;">
+        <button class="stop-btn" style="flex:1" onclick="mostraPagina('page-home')">BACK</button>
+        <button class="btn-classifica-inline" onclick="apriClassifica()">VEDI CLASSIFICA</button>
+    </div>
+    <div id="partite-list"></div>
+</div>
+
+<div id="page-dettaglio" class="pagina hidden">
+    <div style="padding:15px;"><button class="stop-btn" onclick="mostraPagina('page-partite')">BACK</button></div>
+    <div class="card"><h3 id="det-title" style="text-align:center; margin:0; color:var(--accent);"></h3></div>
+    <div class="card">
+        <div class="market-row">
+            <button class="market-btn active-market" id="btn-1x2" onclick="switchMarket('1x2')">1X2</button>
+            <button class="market-btn" id="btn-gg" onclick="switchMarket('gg')">GG/NG</button>
+            <button class="market-btn" id="btn-uo" onclick="switchMarket('uo')">UNDER/OVER</button>
+            <button class="market-btn" id="btn-cs" onclick="switchMarket('cs')">ESATTO</button>
+        </div>
+    </div>
+    <div id="market-content" class="card"></div>
+</div>
+
+<div id="page-classifica" class="pagina hidden">
+    <div style="padding:15px;"><button class="stop-btn" onclick="mostraPagina('page-partite')">BACK</button></div>
+    <div class="card">
+        <h3 id="class-nome-camp" style="text-align:center; color:var(--accent); margin:0;"></h3>
+        <p style="text-align:center; font-size:0.7rem; color:#888;">GIORNATA <span id="class-giornata"></span></p>
+        <table id="rank-table">
+            <thead>
+                <tr><th class="pos">#</th><th>SQUADRA</th><th>PT</th><th>G</th><th>V</th><th>N</th><th>P</th></tr>
+            </thead>
+            <tbody id="rank-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="footer-ui" class="footer-bet">
+    <div class="vincita-box">
+        <div id="lista-schedina"></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; font-weight:900; margin-top:10px;">
+            <span>QUOTA: <span id="quota-tot-ui" style="color:var(--accent);">1.00</span></span>
+            <span>VINCITA: <span id="vincita-potenziale" style="color:#4caf50;">€ 0.00</span></span>
+        </div>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <input type="number" id="bet-amount" value="10" oninput="aggiornaCalcolo()" style="flex:1; background:#000; color:#fff; border:1px solid #444; padding:12px; border-radius:10px; font-weight:bold;">
+        <button onclick="scommetti()" style="flex:2; background:var(--accent); border:none; padding:12px; font-weight:900; border-radius:10px; text-transform:uppercase;">GIOCA</button>
+        <button onclick="pulisciSchedina()" style="background:#333; border:none; padding:12px; border-radius:10px; color:white;">🗑️</button>
+    </div>
+</div>
+
+<script>
+const TEAMS_LIST = {
+    "SERIE A": ["Inter", "Milan", "Juventus", "Napoli", "Roma", "Lazio", "Atalanta", "Fiorentina", "Torino", "Bologna", "Monza", "Verona"],
+    "PREMIER LEAGUE": ["Man City", "Arsenal", "Liverpool", "Aston Villa", "Spurs", "Chelsea", "Man Utd", "Newcastle", "West Ham", "Brighton", "Wolves", "Everton"],
+    "LALIGA": ["Real Madrid", "Barca", "Girona", "Atl. Madrid", "Ath. Bilbao", "Sociedad", "Betis", "Valencia", "Villarreal", "Getafe", "Osasuna", "Sevilla"],
+    "CHAMPIONS LEAGUE": ["Real Madrid", "Man City", "Bayern", "PSG", "Inter", "Arsenal", "Barca", "Dortmund", "Atl. Madrid", "Leipzig", "Porto", "Napoli"]
+};
+
+const MISSIONI_LISTA = [
+    { id: 1, txt: "Scommettitore Novizio", desc: "Gioca la tua prima schedina", xp: 50, tipo: "play", target: 1 },
+    { id: 2, txt: "Primo Successo", desc: "Vinci la tua prima scommessa", xp: 100, tipo: "win", target: 1 },
+    { id: 3, txt: "Cecchino", desc: "Indovina un Risultato Esatto", xp: 250, tipo: "cs", target: 1 },
+    { id: 4, txt: "High Stakes", desc: "Scommetti 100€ in una volta", xp: 150, tipo: "bet_val", target: 100 },
+    { id: 5, txt: "Costanza", desc: "Gioca 10 schedine totali", xp: 200, tipo: "play", target: 10 },
+    { id: 6, txt: "Analista Senior", desc: "Vinci una quota superiore a 5.00", xp: 300, tipo: "quota", target: 5 },
+    { id: 7, txt: "Milionario", desc: "Accumula 1000€ di vincite", xp: 500, tipo: "total_win", target: 1000 },
+    { id: 8, txt: "Under/Over Expert", desc: "Indovina 5 scommesse Under/Over", xp: 200, tipo: "market_uo", target: 5 },
+    { id: 9, txt: "Striscia Positiva", desc: "Vinci 3 schedine di fila", xp: 400, tipo: "streak", target: 3 },
+    { id: 10, txt: "Global Tipster", desc: "Scommetti in tutti i campionati", xp: 600, tipo: "all_camp", target: 4 }
+];
+
+const PREMI_LEVELS = [
+    { lvl: 1, premio: "SERIE A Sbloccata", type: "camp" },
+    { lvl: 2, premio: "Rank: APPRENDISTA", type: "rank" },
+    { lvl: 3, premio: "PREMIER LEAGUE Sbloccata", type: "camp" },
+    { lvl: 4, premio: "Rank: ANALISTA", type: "rank" },
+    { lvl: 5, premio: "LALIGA Sbloccata", type: "camp" },
+    { lvl: 7, premio: "Rank: ESPERTO", type: "rank" },
+    { lvl: 8, premio: "CHAMPIONS LEAGUE Sbloccata", type: "camp" },
+    { lvl: 10, premio: "Rank: LEGGENDA", type: "rank" }
+];
+
+// --- STATO GIOCO ---
+let saldoAttuale = 100.00;
+let xpAttuale = 0;
+let livelloAttuale = 1;
+let schedina = [];
+let matchAttuale = null;
+let campAttuale = "SERIE A";
+let campionatiData = {};
+let stats = { play:0, win:0, cs:0, total_win:0, market_uo:0, streak:0, curr_streak:0, camp_list:[] };
+let missioneStato = {};
+let financeHistory = { entrate: 0, uscite: 0 };
+let financeChart = null;
+let storicoGiocate = [];
+
+// --- FUNZIONI CORE ---
+
+function mostraPagina(id){
+    document.querySelectorAll('.pagina').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.remove('hidden');
+    if(id === 'page-home') { renderCampionati(); document.getElementById('nav-home').classList.add('active'); }
+    if(id === 'page-missioni') { renderMissioni(); document.getElementById('nav-missioni').classList.add('active'); }
+    if(id === 'page-storico') { renderStorico(); document.getElementById('nav-storico').classList.add('active'); }
+    aggiornaCalcolo();
+}
+
+function renderCampionati() {
+    const cont = document.getElementById('camp-container-ui');
+    const config = [
+        { n: "SERIE A", l: 1 }, { n: "PREMIER LEAGUE", l: 3 },
+        { n: "LALIGA", l: 5 }, { n: "CHAMPIONS LEAGUE", l: 8 }
+    ];
+    cont.innerHTML = config.map(c => {
+        const lock = livelloAttuale < c.l;
+        return `<div class="camp-btn ${lock ? 'camp-locked' : ''}" onclick="${lock ? '' : `apriCampionato('${c.n}')`}">
+            ${lock ? `<div class="lock-badge">🔒 LVL ${c.l}</div>` : ''}
+            ${c.n === 'CHAMPIONS LEAGUE' ? '🏆' : '⚽'}<br>${c.n}
+        </div>`;
+    }).join('');
+}
+
+function renderMissioni() {
+    const cont = document.getElementById('missioni-list');
+    cont.innerHTML = MISSIONI_LISTA.map(m => {
+        const done = missioneStato[m.id];
+        return `<div class="missione-card">
+            <div class="missione-info"><b>${m.txt}</b><span>${m.desc}</span></div>
+            <button class="missione-btn ${done ? 'completed' : ''}" onclick="checkMission(${m.id})">${done ? 'FATTO' : `+${m.xp} XP`}</button>
+        </div>`;
+    }).join('');
+}
+
+function renderStorico() {
+    const cont = document.getElementById('storico-lista');
+    if(storicoGiocate.length === 0) {
+        cont.innerHTML = "<div style='text-align:center; color:#666; padding:20px;'>Nessuna giocata effettuata.</div>";
+        return;
+    }
+    cont.innerHTML = storicoGiocate.slice().reverse().map(g => `
+        <div class="storico-item ${g.vinta ? 'win' : 'lose'}">
+            <div class="storico-header">
+                <span>${g.campionato} - GIORNATA ${g.giornata}</span>
+                <span>${g.data}</span>
+            </div>
+            <div class="storico-body">
+                ${g.eventi.map(ev => `<div>${ev.match}: <b>${ev.scelta}</b> (@${ev.quota}) <span style="float:right">${ev.risultato}</span></div>`).join('')}
+            </div>
+            <div class="storico-footer">
+                <span>PUNTATA: €${g.puntata.toFixed(2)}</span>
+                <span style="color:${g.vinta ? '#4caf50' : '#f44336'}">${g.vinta ? 'VINTO €'+g.vincita.toFixed(2) : 'PERSO'}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function togglePass() {
+    const el = document.getElementById('overlay-pass');
+    if(el.style.display === 'block') { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    const list = document.getElementById('reward-list');
+    list.innerHTML = PREMI_LEVELS.map(p => `
+        <div class="reward-step ${livelloAttuale >= p.lvl ? 'unlocked' : ''}">
+            <div class="step-lv">${p.lvl}</div>
+            <div style="flex:1;"><b>${p.premio}</b><br><small>${livelloAttuale >= p.lvl ? 'SBLOCCATO' : 'BLOCCATO'}</small></div>
+            <div>${livelloAttuale >= p.lvl ? '✅' : '🔒'}</div>
+        </div>
+    `).join('');
+}
+
+function mostraGrafico() {
+    document.getElementById('overlay-grafico').style.display = 'block';
+    document.getElementById('g-uscite').innerText = `€ ${financeHistory.uscite.toFixed(2)}`;
+    document.getElementById('g-entrate').innerText = `€ ${financeHistory.entrate.toFixed(2)}`;
+    
+    const ctx = document.getElementById('financeChart').getContext('2d');
+    if(financeChart) financeChart.destroy();
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, 250); // Gradiente più corto
+    gradient.addColorStop(0, 'rgba(255, 215, 0, 0.4)');
+    gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+
+    financeChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Uscite', 'Entrate'],
+            datasets: [{
+                label: 'Bilancio Euro',
+                data: [financeHistory.uscite, financeHistory.entrate],
+                borderColor: '#FFD700',
+                backgroundColor: gradient,
+                fill: true,
+                tension: 0.4,
+                borderWidth: 3,
+                pointBackgroundColor: '#FFD700',
+                pointRadius: 4
+            }]
+        },
+        options: { 
+            responsive: true,
+            maintainAspectRatio: true, // Mantiene le proporzioni
+            aspectRatio: 1.5,           // Valore più alto = grafico più basso/schiacciato
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                y: { 
+                    beginAtZero: true, 
+                    grid: { color: '#222' },
+                    ticks: { color: '#888', font: { size: 10 } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#888', font: { size: 10 } }
+                }
+            } 
+        }
+    });
+}
+function checkMission(id) {
+    if(missioneStato[id]) return;
+    const m = MISSIONI_LISTA.find(x => x.id === id);
+    let ok = false;
+    if(m.tipo === "play" && stats.play >= m.target) ok = true;
+    if(m.tipo === "win" && stats.win >= m.target) ok = true;
+    if(m.tipo === "total_win" && stats.total_win >= m.target) ok = true;
+    if(m.tipo === "streak" && stats.streak >= m.target) ok = true;
+    if(m.tipo === "all_camp" && stats.camp_list.length >= m.target) ok = true;
+    
+    if(ok) {
+        missioneStato[id] = true;
+        xpAttuale += m.xp;
+        updateXpUi();
+        renderMissioni();
+        salvaInLocale();
+        alert("Missione Completata!");
+    } else {
+        alert("Obiettivo non ancora raggiunto!");
+    }
+}
+
+function inizializzaNuovoCampionato(nome) {
+    let squadre = TEAMS_LIST[nome];
+    let classifica = {};
+    squadre.forEach(s => { classifica[s] = { pt: 0, g: 0, v: 0, n: 0, p: 0 }; });
+    let calendario = generaCalendario(squadre);
+    campionatiData[nome] = { classifica: classifica, calendario: calendario, giornataCorrente: 1 };
+}
+
+function generaCalendario(squadre) {
+    let n = squadre.length;
+    let giornate = [];
+    let tempSquadre = [...squadre];
+    for (let i = 0; i < n - 1; i++) {
+        let matches = [];
+        for (let j = 0; j < n / 2; j++) { matches.push({ casa: tempSquadre[j], fuori: tempSquadre[n - 1 - j] }); }
+        giornate.push(matches);
+        tempSquadre.splice(1, 0, tempSquadre.pop());
+    }
+    let ritorno = giornate.map(g => g.map(m => ({ casa: m.fuori, fuori: m.casa })));
+    return [...giornate, ...ritorno];
+}
+
+function apriCampionato(nome) {
+    campAttuale = nome;
+    if (!campionatiData[nome]) inizializzaNuovoCampionato(nome);
+    let data = campionatiData[nome];
+    let matchesGiornata = data.calendario[data.giornataCorrente - 1];
+    matchesGiornata.forEach(m => {
+        if (!m.esiti) {
+            m.esiti = {
+                "1": (1.40 + Math.random()).toFixed(2),
+                "X": (3.10 + Math.random()).toFixed(2),
+                "2": (2.20 + Math.random()).toFixed(2),
+                "GG": (1.55 + Math.random()).toFixed(2),
+                "NG": (1.85 + Math.random()).toFixed(2)
+            };
+        }
+    });
+    const list = document.getElementById('partite-list');
+    list.innerHTML = `<h3 style="text-align:center; color:var(--accent)">${nome} - GIORNATA ${data.giornataCorrente}</h3>`;
+    matchesGiornata.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'partita-row';
+        div.innerHTML = `<span style="font-weight:800;">${p.casa} - ${p.fuori}</span><span style="color:var(--accent)">➔</span>`;
+        div.onclick = () => apriDettaglio(p);
+        list.appendChild(div);
+    });
+    mostraPagina('page-partite');
+}
+
+function apriClassifica() {
+    if (!campionatiData[campAttuale]) inizializzaNuovoCampionato(campAttuale);
+    let data = campionatiData[campAttuale];
+    document.getElementById('class-nome-camp').innerText = campAttuale;
+    document.getElementById('class-giornata').innerText = data.giornataCorrente;
+    let sorted = Object.entries(data.classifica).sort((a,b) => b[1].pt - a[1].pt);
+    let html = "";
+    sorted.forEach((s, i) => {
+        html += `<tr><td class="pos">${i+1}</td><td style="font-weight:bold;">${s[0]}</td><td style="color:var(--accent); font-weight:bold;">${s[1].pt}</td><td>${s[1].g}</td><td>${s[1].v}</td><td>${s[1].n}</td><td>${s[1].p}</td></tr>`;
+    });
+    document.getElementById('rank-body').innerHTML = html;
+    mostraPagina('page-classifica');
+}
+
+
+async function scommetti() {
+    if (schedina.length === 0) return;
+    
+    const inputAmount = document.getElementById('bet-amount');
+    const importo = parseFloat(inputAmount.value);
+
+    if(isNaN(importo) || importo <= 0) return alert("Inserisci un importo valido!");
+    if(importo > saldoAttuale) return alert("Saldo insufficiente! Hai €" + saldoAttuale.toFixed(2));
+
+    saldoAttuale -= importo;
+    financeHistory.uscite += importo;
+    stats.play++;
+    if(!stats.camp_list.includes(campAttuale)) stats.camp_list.push(campAttuale);
+
+    mostraPagina('page-simulazione');
+    document.getElementById('saldo-ui').innerText = saldoAttuale.toFixed(2);
+    document.getElementById('footer-ui').style.display = 'none';
+    document.getElementById('btn-finish-sim').style.display = 'none';
+    document.getElementById('sim-result-msg').innerHTML = "";
+
+    const data = campionatiData[campAttuale];
+    const matchesGiornata = data.calendario[data.giornataCorrente - 1];
+
+    matchesGiornata.forEach(m => { 
+        m.currentGolC = 0; 
+        m.currentGolF = 0; 
+        m.golC = Math.floor(Math.random() * 5); 
+        m.golF = Math.floor(Math.random() * 4);
+        m.lastGoalMin = -10; 
+    });
+
+    const container = document.getElementById('sim-container');
+    
+    for (let min = 1; min <= 90; min++) {
+        await new Promise(r => setTimeout(r, 150)); 
+        
+        let html = `<div style="text-align:center; padding:20px; background:#000; border-bottom:2px solid var(--accent); position:sticky; top:0; z-index:10;">
+                        <span style="color:#888; font-size:0.7rem; text-transform:uppercase; letter-spacing:2px;">Tempo di Gioco</span><br>
+                        <span class="timer-live" style="font-size:2rem;">${min}'</span>
+                    </div>`;
+        
+        matchesGiornata.forEach((p) => {
+            let golFattoInQuestoMinuto = false; 
+
+            if(min % 2 === 0) { 
+                if(!golFattoInQuestoMinuto && p.currentGolC < p.golC && Math.random() > 0.96) {
+                    p.currentGolC++;
+                    p.lastGoalMin = min;
+                    golFattoInQuestoMinuto = true;
+                }
+                if(!golFattoInQuestoMinuto && p.currentGolF < p.golF && Math.random() > 0.96) {
+                    p.currentGolF++;
+                    p.lastGoalMin = min;
+                    golFattoInQuestoMinuto = true;
+                }
+            }
+
+            const isFlashing = (min < p.lastGoalMin + 5);
+            const scoreStyle = isFlashing 
+                ? "border-color: #FFD700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.7); color: #FFD700; transform: scale(1.1);" 
+                : "border-color: var(--accent); color: var(--accent);";
+
+            html += `
+                <div style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid #222; align-items:center;">
+                    <span style="flex:1; font-weight:bold; font-size:0.85rem;">${p.casa}</span>
+                    <div class="score-box" style="transition: all 0.4s ease; ${scoreStyle}">
+                        ${p.currentGolC} - ${p.currentGolF}
+                    </div>
+                    <span style="flex:1; text-align:right; font-weight:bold; font-size:0.85rem;">${p.fuori}</span>
+                </div>`;
+        });
+        container.innerHTML = html;
+        document.getElementById('sim-status').innerText = "LIVE - Risultati in tempo reale";
+    }
+
+    // --- LOGICA RISULTATI CORRETTA ---
+    let vincente = true;
+    let quotaTotale = schedina.reduce((acc, curr) => acc * curr.quota, 1);
+    let eventiStorico = [];
+    
+    schedina.forEach(s => {
+        const match = matchesGiornata.find(m => (m.casa + "-" + m.fuori) === s.evento);
+        let ok = false;
+        let totG = match.golC + match.golF;
+        
+        // Switch corretto per ogni mercato
+        if(s.scelta === '1') { if(match.golC > match.golF) ok = true; }
+        else if(s.scelta === 'X') { if(match.golC === match.golF) ok = true; }
+        else if(s.scelta === '2') { if(match.golF > match.golC) ok = true; }
+        else if(s.scelta === 'GG') { if(match.golC > 0 && match.golF > 0) ok = true; }
+        else if(s.scelta === 'NG') { if(match.golC === 0 || match.golF === 0) ok = true; }
+        else if(s.scelta.startsWith('U')) { if(totG < parseFloat(s.scelta.split(' ')[1])) ok = true; }
+        else if(s.scelta.startsWith('O')) { if(totG > parseFloat(s.scelta.split(' ')[1])) ok = true; }
+        else if(s.scelta.includes('-')) { if((match.golC + "-" + match.golF) === s.scelta) ok = true; }
+        
+        if(!ok) vincente = false;
+        eventiStorico.push({ match: s.evento, scelta: s.scelta, quota: s.quota, risultato: `${match.golC}-${match.golF}` });
+    });
+
+    let vincitaFinale = 0;
+    if(vincente) {
+        vincitaFinale = importo * quotaTotale;
+        saldoAttuale += vincitaFinale;
+        financeHistory.entrate += vincitaFinale;
+        xpAttuale += Math.floor(quotaTotale * 10);
+        stats.win++;
+        document.getElementById('sim-result-msg').innerHTML = `<span style="color:#4caf50;">VINTO € ${vincitaFinale.toFixed(2)} 🏆</span>`;
+    } else {
+        document.getElementById('sim-result-msg').innerHTML = `<span style="color:#f44336;">PERSO ❌</span>`;
+        xpAttuale += 5;
+    }
+
+    storicoGiocate.push({
+        data: new Date().toLocaleTimeString(),
+        campionato: campAttuale,
+        giornata: data.giornataCorrente,
+        eventi: eventiStorico,
+        puntata: importo,
+        vincita: vincitaFinale,
+        vinta: vincente
+    });
+
+    // Aggiornamento classifica reale
+    matchesGiornata.forEach(m => {
+        let cl = data.classifica;
+        cl[m.casa].g++; cl[m.fuori].g++;
+        if(m.golC > m.golF) { cl[m.casa].pt += 3; cl[m.casa].v++; cl[m.fuori].p++; }
+        else if(m.golC < m.golF) { cl[m.fuori].pt += 3; cl[m.fuori].v++; cl[m.casa].p++; }
+        else { cl[m.casa].pt += 1; cl[m.fuori].pt += 1; cl[m.casa].n++; cl[m.fuori].n++; }
+    });
+
+    document.getElementById('saldo-ui').innerText = saldoAttuale.toFixed(2);
+    updateXpUi(); 
+    salvaInLocale();
+    document.getElementById('btn-finish-sim').style.display = 'block';
+}
+
+function aggiornaUI_Saldo() {
+    saldoAttuale = Number(saldoAttuale);
+    document.getElementById('saldo-ui').innerText = saldoAttuale.toFixed(2);
+}
+
+function tornaAllePartite() {
+    let data = campionatiData[campAttuale];
+    if(data.giornataCorrente < data.calendario.length) data.giornataCorrente++;
+    else { alert("Stagione Finita!"); inizializzaNuovoCampionato(campAttuale); }
+    pulisciSchedina(); salvaInLocale(); mostraPagina('page-home');
+}
+
+function updateXpUi() {
+    let nextXp = livelloAttuale * 100;
+    if(xpAttuale >= nextXp) { xpAttuale -= nextXp; livelloAttuale++; updateXpUi(); }
+    document.getElementById('lvl-ui').innerText = livelloAttuale;
+    document.getElementById('xp-fill-ui').style.width = Math.min((xpAttuale/nextXp)*100, 100) + "%";
+    
+    let rank = "NOVIZIO";
+    if(livelloAttuale >= 2) rank = "APPRENDISTA";
+    if(livelloAttuale >= 4) rank = "ANALISTA";
+    if(livelloAttuale >= 7) rank = "ESPERTO";
+    if(livelloAttuale >= 10) rank = "LEGGENDA";
+    document.getElementById('titolo-rank').innerText = "RANK: " + rank;
+}
+
+function switchMarket(type) {
+    document.querySelectorAll('.market-btn').forEach(b => b.classList.remove('active-market'));
+    document.getElementById('btn-' + type).classList.add('active-market');
+    const p = matchAttuale;
+    const giaScelto = schedina.find(s => s.evento === (p.casa + "-" + p.fuori));
+    let html = "";
+    if (type === '1x2') {
+        html = `<div class="grid3">
+            <button class="q-btn ${giaScelto?.scelta === '1' ? 'selected' : ''}" onclick="seleziona(${p.esiti['1']},'1',this)"><b>CASA</b>1<br>${p.esiti['1']}</button>
+            <button class="q-btn ${giaScelto?.scelta === 'X' ? 'selected' : ''}" onclick="seleziona(${p.esiti['X']},'X',this)"><b>X</b>X<br>${p.esiti['X']}</button>
+            <button class="q-btn ${giaScelto?.scelta === '2' ? 'selected' : ''}" onclick="seleziona(${p.esiti['2']},'2',this)"><b>OSPITE</b>2<br>${p.esiti['2']}</button>
+        </div>`;
+    } else if (type === 'gg') {
+        html = `<div class="grid2">
+            <button class="q-btn ${giaScelto?.scelta === 'GG' ? 'selected' : ''}" onclick="seleziona(${p.esiti['GG']},'GG',this)"><b>GOAL</b>GG<br>${p.esiti['GG']}</button>
+            <button class="q-btn ${giaScelto?.scelta === 'NG' ? 'selected' : ''}" onclick="seleziona(${p.esiti['NG']},'NG',this)"><b>NO GOAL</b>NG<br>${p.esiti['NG']}</button>
+        </div>`;
+    } else if (type === 'uo') {
+        [1.5, 2.5, 3.5, 4.5].forEach(s => {
+            html += `<div class="uo-row"><button class="q-btn" onclick="seleziona(1.85,'U ${s}',this)"><b>UNDER</b>1.85</button><div class="uo-label">${s}</div><button class="q-btn" onclick="seleziona(1.85,'O ${s}',this)"><b>OVER</b>1.85</button></div>`;
+        });
+    } else if (type === 'cs') {
+        let casaResHTML = "", pareggiResHTML = "", fuoriResHTML = "";
+        for(let gC=0; gC<=6; gC++){
+            for(let gF=0; gF<=6; gF++){
+                if(gC + gF > 6) continue;
+                let res = `${gC}-${gF}`;
+                let q = 12.00;
+                let btn = `<button class="q-btn ${giaScelto?.scelta === res ? 'selected' : ''}" onclick="seleziona(${q.toFixed(2)},'${res}',this)"><b>${res}</b>${q.toFixed(2)}</button>`;
+                if(gC > gF) casaResHTML += btn;
+                else if(gC < gF) fuoriResHTML += btn;
+                else pareggiResHTML += btn;
+            }
+        }
+        html = `<div class="cs-grid-container">
+            <div class="cs-column"><div class="cs-title">CASA</div>${casaResHTML}</div>
+            <div class="cs-column"><div class="cs-title">PAREGGIO</div>${pareggiResHTML}</div>
+            <div class="cs-column"><div class="cs-title">FUORI</div>${fuoriResHTML}</div>
+        </div>`;
+    }
+    document.getElementById("market-content").innerHTML = html;
+}
+
+function apriDettaglio(p) { matchAttuale = p; document.getElementById('det-title').innerText = p.casa + " vs " + p.fuori; switchMarket('1x2'); mostraPagina('page-dettaglio'); }
+function seleziona(q, l, b) {
+    const ev = matchAttuale.casa + "-" + matchAttuale.fuori;
+    schedina = schedina.filter(s => s.evento !== ev);
+    schedina.push({ evento: ev, scelta: l, quota: q });
+    document.querySelectorAll('#market-content .q-btn').forEach(x => x.classList.remove('selected'));
+    b.classList.add('selected'); aggiornaCalcolo();
+}
+function pulisciSchedina() { schedina = []; aggiornaCalcolo(); }
+
+function aggiornaCalcolo() {
+    const inputAmount = document.getElementById('bet-amount');
+    const importo = inputAmount ? (parseFloat(inputAmount.value) || 0) : 0;
+    const qTot = schedina.reduce((acc, curr) => acc * curr.quota, 1);
+    document.getElementById('lista-schedina').innerHTML = schedina.map(s => `<div style="display:flex; justify-content:space-between; font-size:0.7rem;"><span>${s.evento} (${s.scelta})</span><span style="color:var(--accent)">@${s.quota}</span></div>`).join('');
+    document.getElementById('quota-tot-ui').innerText = qTot.toFixed(2);
+    document.getElementById('vincita-potenziale').innerText = "€ " + (importo * qTot).toFixed(2);
+    
+    const isHome = !document.getElementById('page-home').classList.contains('hidden');
+    const isSim = !document.getElementById('page-simulazione').classList.contains('hidden');
+    
+    if (schedina.length > 0 && !isHome && !isSim) {
+        document.getElementById('footer-ui').style.display = 'block';
+    } else {
+        document.getElementById('footer-ui').style.display = 'none';
+    }
+}
+
+function salvaInLocale() { 
+    localStorage.setItem('bet_pro_full_save', JSON.stringify({ 
+        saldo: parseFloat(saldoAttuale), 
+        xp: xpAttuale, 
+        lvl: livelloAttuale, 
+        camps: campionatiData, 
+        stats: stats, 
+        missioni: missioneStato,
+        finance: financeHistory,
+        storico: storicoGiocate
+    })); 
+}
+
+function caricaDaLocale() {
+    const s = localStorage.getItem('bet_pro_full_save');
+    if(s) { 
+        const d = JSON.parse(s); 
+        saldoAttuale = Number(d.saldo) || 100;
+        xpAttuale = d.xp; 
+        livelloAttuale = d.lvl; 
+        campionatiData = d.camps; 
+        stats = d.stats; 
+        missioneStato = d.missioni || {};
+        financeHistory = d.finance || { entrate: 0, uscite: 0 };
+        storicoGiocate = d.storico || [];
+    }
+    aggiornaUI_Saldo();
+    updateXpUi();
+}
+
+function controllaBonus() {
+    let s = parseFloat(saldoAttuale);
+    if (s < 5 && !document.getElementById('btn-bonus')) {
+        const btn = document.createElement('button'); btn.id = 'btn-bonus'; btn.innerHTML = "🎁 RICEVI BONUS 100€";
+        btn.style = "width:90%; margin:10px 5%; background:#4caf50; color:white; border:none; padding:15px; border-radius:12px; font-weight:900;";
+        btn.onclick = () => { 
+            saldoAttuale = parseFloat(saldoAttuale) + 100; 
+            aggiornaUI_Saldo(); 
+            btn.remove(); 
+            salvaInLocale(); 
+        };
+        document.getElementById('page-home').prepend(btn);
+    } else if (s >= 5 && document.getElementById('btn-bonus')) { 
+        document.getElementById('btn-bonus').remove(); 
+    }
+}
+
+window.onload = () => { 
+    caricaDaLocale(); 
+    renderCampionati();
+    setInterval(controllaBonus, 2000); 
+};
+</script>
+</body>
+</html>
